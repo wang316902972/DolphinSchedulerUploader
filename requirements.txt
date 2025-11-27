@@ -1,0 +1,6 @@
+# DolphinScheduler 文件上传工具依赖包
+requests>=2.25.0
+tqdm>=4.62.0
+
+# 可选依赖（用于更好的JSON处理）
+ujson>=4.0.0
