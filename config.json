@@ -1,7 +1,8 @@
 {
-	"base_url": "http://localhost:12345/dolphinscheduler",
-	"token": "your_access_token_here",
-	"tenant_id": 1,
-	"parent_resource_id": -1,
-	"log_level": "INFO"
+  "base_url": "http://14.103.67.28:12345",
+  "token": "your_access_token_here",
+  "tenant_id": 4,
+  "parent_resource_id": -1,
+  "log_level": "INFO",
+  "auth_type": "token_header"
 }
