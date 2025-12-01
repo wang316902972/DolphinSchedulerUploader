@@ -286,8 +286,32 @@ class DolphinSchedulerUploader:
             self.logger.debug(f"文件已编码，长度: {len(encoded_content)} 字符")
 
             # 2. 准备请求参数
-            # 从文件名中提取后缀
+            # 从文件名中提取后缀，并处理DolphinScheduler API要求
             suffix = os.path.splitext(file_name)[1].lstrip('.')
+
+            # DolphinScheduler API特殊处理：常见文件类型映射
+            suffix_mapping = {
+                'jar': 'JAR',
+                'zip': 'ZIP',
+                'tar': 'TAR',
+                'gz': 'GZ',
+                'py': 'PY',
+                'sql': 'SQL',
+                'json': 'JSON',
+                'xml': 'XML',
+                'properties': 'PROPERTIES',
+                'yml': 'YAML',
+                'yaml': 'YAML',
+                'sh': 'SH',
+                'bat': 'BAT',
+                'md': 'MD',
+                'txt': 'TXT'
+            }
+
+            # 使用映射后的后缀，如果没有映射则使用大写
+            mapped_suffix = suffix_mapping.get(suffix.lower(), suffix.upper()) if suffix else ''
+
+            self.logger.debug(f"原始后缀: '{suffix}', 映射后缀: '{mapped_suffix}'")
 
             # 使用配置的上传路径
             if hasattr(self, 'upload_path'):
@@ -308,8 +332,7 @@ class DolphinSchedulerUploader:
 
             # 统一使用token header认证
             headers = {
-                'token': self.config['token'],
-                'Content-Type': 'application/json'
+                'token': self.config['token']
             }
 
             self.logger.info(f"正在上传文件 {file_name}...")
@@ -317,15 +340,13 @@ class DolphinSchedulerUploader:
             self.logger.debug(f"参数 (不含content): { {k: v for k, v in params.items() if k != 'content'} }")
 
             # 3. 发送POST请求
-            # 注意: 这里的content参数非常大，通过query string传递可能会导致URL过长，
-            # 某些服务器可能会拒绝。如果失败，可能需要尝试使用multipart/form-data
-            # 或联系管理员确认正确的API用法。
+            # 使用multipart/form-data格式提交数据
             timeout = getattr(self, 'timeout', 300)
 
-            # 使用session对象而不是直接的requests.post
-            response = self.session.post(
+            # 使用files参数提交multipart/form-data
+            response = requests.post(
                 upload_url,
-                params=params,
+                data=params,  # 将参数作为表单数据
                 headers=headers,
                 timeout=timeout,
                 verify=getattr(self, 'verify_ssl', True)
@@ -343,7 +364,8 @@ class DolphinSchedulerUploader:
                 else:
                     error_msg = result.get('msg', '未知错误')
                     self.logger.error(f"上传失败: {relative_path}, 错误: {error_msg}")
-                    self.logger.debug(f"完整响应: {result}")
+                    self.logger.error(f"完整响应: {result}")
+                    self.logger.error(f"请求参数: {params}")
                     return False, f"上传失败: {relative_path}, 错误: {error_msg}"
             elif response.status_code == 401:
                 # 专门处理401错误
