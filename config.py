@@ -6,16 +6,20 @@ DolphinScheduler 上传工具配置文件
 # DolphinScheduler 服务器配置
 BASE_URL = "http://14.103.67.28:12345/dolphinscheduler"
 
-# 认证配置
+# 认证配置 - 使用Token认证
+ACCESS_TOKEN = "621a68a6631741b2c36919b0bb94c85d"  # 替换为实际的Access Token
+
+# 备用：保持原有cookie配置以便兼容
 AUTH_COOKIE = {
     "sessionId": "621a68a6631741b2c36919b0bb94c85d"  # 替换为实际的Session ID
 }
 
-# 资源上传参数
+# 资源上传参数 - 使用online-create端点用于支持在线查看的文件类型
 UPLOAD_PATH = "/resources/online-create"
 RESOURCE_TYPE = "FILE"
-PARENT_DIR_ID = -1  # 父目录ID，根目录通常为-1或0
-CURRENT_DIR = "/dolphinscheduler/resources"
+TENANT_ID = 21  # 租户ID
+PARENT_DIR_ID = 97  # 父目录ID，根目录通常为-1或0
+CURRENT_DIR = ""
 
 # 请求配置
 REQUEST_TIMEOUT = 300  # 请求超时时间（秒）
@@ -45,6 +49,7 @@ def get_auth_config():
         dict: 认证配置字典
     """
     return {
+        "token": ACCESS_TOKEN,
         "cookie": AUTH_COOKIE,
         "timeout": REQUEST_TIMEOUT,
         "verify": VERIFY_SSL
