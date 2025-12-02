@@ -17,7 +17,6 @@ import sys
 import json
 import hashlib
 import logging
-# import base64  # 不再需要Base64编码
 import mimetypes
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
@@ -326,10 +325,8 @@ class DolphinSchedulerFileUploader:
             self.logger.debug(f"原始后缀: '{suffix}', 映射后缀: '{mapped_suffix}'")
 
             # 使用配置的上传路径
-            if hasattr(self, 'upload_path'):
-                upload_url = f"{self.config['base_url']}{self.upload_path}"
-            else:
-                upload_url = f"{self.config['base_url']}/resources/online-create"
+            upload_url = f"{self.config['base_url']}{self.upload_path}"
+       
 
             # 构造查询参数
             # 支持在线查看的文件类型列表 (必须为小写)
@@ -345,26 +342,10 @@ class DolphinSchedulerFileUploader:
             form_data = {
                 "currentDir": "",  # 空字符串而不是'/'
                 "description": f"Uploaded via File API - {relative_path}",
-                "fileName": file_name_without_ext,  # 不包含扩展名，由suffix参数提供
+                "name": file_name,  # 使用原始文件名
                 "pid": str(parent_id),  # 确保转换为字符串
-                "type": "FILE",
-                "tenantId": str(self.config.get('tenant_id', 21))  # 添加租户ID参数
+                "type": "FILE"
             }
-
-            # 只有当文件类型支持在线查看时才添加suffix参数
-            # CRITICAL: Must use lowercase suffix!
-            if suffix and suffix.lower() in online_viewable_suffixes:
-                # 使用小写后缀 - 这是解决方案!
-                form_data["suffix"] = mapped_suffix
-                self.logger.debug(f"文件类型 {suffix} 支持在线查看，设置suffix为 {mapped_suffix}")
-            elif suffix:
-                # 文件有后缀但不支持在线查看，使用默认txt后缀
-                form_data["suffix"] = 'txt'
-                self.logger.info(f"文件类型 {suffix} 不支持在线查看，使用默认txt后缀")
-            else:
-                # 无后缀文件，设置为txt
-                form_data["suffix"] = 'txt'
-                self.logger.debug("无后缀文件，设置为txt后缀")
 
             # 统一使用token header认证
             headers = {
@@ -373,29 +354,29 @@ class DolphinSchedulerFileUploader:
 
             self.logger.info(f"正在上传文件 {file_name} (大小: {file_size} 字节)...")
             self.logger.debug(f"目标URL: {upload_url}")
-            self.logger.debug(f"表单参数: {form_data}")
 
             # 2. 直接读取文件内容作为二进制数据进行上传
-            # 读取文件内容（不进行Base64编码）
-            self.logger.info(f"正在读取文件内容: {file_path}")
             with open(file_path, "rb") as f:
                 file_content_raw = f.read()
 
             self.logger.debug(f"文件大小: {len(file_content_raw)} 字节")
 
             # 3. 发送POST请求 (带重试机制)
-            # 使用data参数发送原始文件内容，而不是files参数
+            # 直接将文件内容作为字符串上传到content参数
             timeout = getattr(self, 'timeout', 300)
 
-            # 构造包含文件内容的参数字典
-            # 尝试让API直接接收二进制内容
-            post_data = form_data.copy()
-            post_data['content'] = file_content_raw  # 直接使用二进制内容，不编码
+            files = {
+                'file': (file_name, file_content_raw, self._get_content_type(file_path))
+            }
+
+            self.logger.debug(f"上传参数: {form_data}")
+            self.logger.debug(f"请求头: {headers}")
 
             response = requests.post(
                 upload_url,
-                data=post_data,  # 使用data参数，包含原始文件内容
+                data=form_data,  # 包含content参数的表单数据
                 headers=headers,
+                files=files,
                 timeout=timeout,
                 verify=getattr(self, 'verify_ssl', True)
             )
@@ -539,54 +520,7 @@ class DolphinSchedulerFileUploader:
             self.logger.error("失败的文件:")
             for error in stats['errors']:
                 self.logger.error(f"  - {error}")
-
         return stats
-
-    def test_connection(self) -> bool:
-        """
-        测试与DolphinScheduler的连接
-
-        Returns:
-            bool: 连接是否成功
-        """
-        try:
-            # 修复: base_url已经包含/dolphinscheduler，不需要再追加
-            # 使用simpler endpoint that doesn't require pagination
-            url = f"{self.config['base_url']}/resources/query-resource-list"
-            params = {
-                'tenantId': self.config.get('tenant_id', 21)
-            }
-
-            headers = {
-                'token': self.config['token']
-            }
-
-            response = self.session.get(url, params=params, headers=headers,
-                                      timeout=30, verify=getattr(self, 'verify_ssl', True))
-            response.raise_for_status()
-
-            self.logger.debug(f"响应状态码: {response.status_code}")
-            self.logger.debug(f"响应头: {dict(response.headers)}")
-            self.logger.debug(f"响应内容: {response.text[:500]}")
-
-            try:
-                data = response.json()
-                # 即使返回20004(resource not exist)也说明连接成功，因为API可以正常响应
-                if data.get('code') in [0, 20004]:
-                    self.logger.info("连接测试成功!")
-                    return True
-                else:
-                    self.logger.error(f"连接测试失败: {data.get('msg', '未知错误')}")
-                    return False
-            except json.JSONDecodeError as e:
-                self.logger.error(f"JSON解析失败: {e}")
-                self.logger.error(f"原始响应: {response.text}")
-                return False
-
-        except Exception as e:
-            self.logger.error(f"连接测试异常: {e}")
-            return False
-
 
 def create_sample_config():
     """创建示例配置文件"""
@@ -634,22 +568,6 @@ def main():
         create_sample_config()
         return
 
-    if args.test_connection:
-        try:
-            use_config_file = args.use_config_file
-            if use_config_file:
-                print(f"使用传统配置文件: {args.config}")
-                uploader = DolphinSchedulerFileUploader(use_config_file=True, config_file=args.config)
-            else:
-                print("使用config.py模块配置")
-                uploader = DolphinSchedulerFileUploader(use_config_file=False)
-
-            success = uploader.test_connection()
-            sys.exit(0 if success else 1)
-        except Exception as e:
-            print(f"连接测试失败: {e}")
-            sys.exit(1)
-
     # 检查是否提供了目录参数
     if not args.directory:
         parser.error("必须提供要上传的目录路径，或使用 --test-connection 测试连接功能")
@@ -664,11 +582,6 @@ def main():
             print("使用config.py模块配置")
             uploader = DolphinSchedulerFileUploader(use_config_file=False)
 
-        # 测试连接
-        print("测试连接...")
-        if not uploader.test_connection():
-            print("连接测试失败，请检查配置")
-            sys.exit(1)
 
         # 设置工作线程数（优先使用命令行参数）
         if args.workers != 5:

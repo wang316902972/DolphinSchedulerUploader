@@ -14,8 +14,8 @@ AUTH_COOKIE = {
     "sessionId": "xx"  # 替换为实际的Session ID
 }
 
-# 资源上传参数 - 使用online-create端点用于支持在线查看的文件类型
-UPLOAD_PATH = "/resources/online-create"
+# 资源上传参数
+UPLOAD_PATH = "/resources"
 RESOURCE_TYPE = "FILE"
 TENANT_ID = 21  # 租户ID
 PARENT_DIR_ID = 97  # 父目录ID，根目录通常为-1或0

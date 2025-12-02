@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
 # 3. 上传测试文件
 echo "3. 上传测试文件..."
-python upload.py test_files -c config.json
+python3.11 file_upload.py test_files/ --parent package
 
 echo ""
 echo "=== 上传完成 ==="
