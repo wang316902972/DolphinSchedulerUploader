@@ -7,11 +7,11 @@ DolphinScheduler 上传工具配置文件
 BASE_URL = "http://14.103.67.28:12345/dolphinscheduler"
 
 # 认证配置 - 使用Token认证
-ACCESS_TOKEN = "xx"  # 替换为实际的Access Token
+ACCESS_TOKEN = "621a68a6631741b2c36919b0bb94c85d"  # 替换为实际的Access Token
 
 # 备用：保持原有cookie配置以便兼容
 AUTH_COOKIE = {
-    "sessionId": "xx"  # 替换为实际的Session ID
+    "sessionId": "621a68a6631741b2c36919b0bb94c85d"  # 替换为实际的Session ID
 }
 
 # 资源上传参数
