@@ -276,8 +276,8 @@ def main():
     parser.add_argument('--watch-dir', default='test_files', help='监听目录路径')
     parser.add_argument('--venv-path', default='dolphinscheduler-env', help='虚拟环境路径')
     parser.add_argument('--interval', type=int, default=5, help='检查间隔秒数')
-    parser.add_argument('--test-upload', action='store_true', help='测试上传功能')
-
+    parser.add_argument('--test-upload', action='store_true', help='测试上传模式')
+    
     args = parser.parse_args()
 
     try:

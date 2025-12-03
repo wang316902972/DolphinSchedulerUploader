@@ -73,5 +73,9 @@ except ImportError:
 "
 
 # 启动监听服务
+echo -e "${GREEN}🚀 启动文件监听服务...${NC}"
+echo
+
+LOG_FILE="$PROJECT_DIR/file_monitor.log"
 cd "$PROJECT_DIR"
-dolphinscheduler-env/bin/python3 file_listener_service.py "$WATCH_DIR" -w "$WORKERS" 2>&1 | tee "$LOG_FILE"
+dolphinscheduler-env/bin/python3 file_monitor_final.py --watch-dir "$WATCH_DIR" --venv-path dolphinscheduler-env --interval 5 2>&1 | tee "$LOG_FILE"
